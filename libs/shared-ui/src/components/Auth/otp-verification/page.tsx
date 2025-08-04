@@ -1,13 +1,19 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useMutation } from '@apollo/client';
-import { VERIFY_OTP_MUTATION, RESEND_OTP_MUTATION } from '../../../graphql/mutations/auth';
-import { VerifyOtpInput, ResendOtpInput } from '../../../../../shared-types/src/auth/auth.types';
+import { useMutation } from "@apollo/client";
+import { VERIFY_OTP_MUTATION, RESEND_OTP_MUTATION } from "../../../graphql/mutations/auth";
+import { VerifyOtpInput, ResendOtpInput } from "../../../../../shared-types/src/auth/auth.types";
 import Image from "next/image";
-import { Box, Button, Typography, TextField, CircularProgress } from "@mui/material";
+import {
+  Box,
+  Button,
+  Typography,
+  TextField,
+  CircularProgress,
+} from "@mui/material";
 import { Inter } from "next/font/google";
-import { toast } from 'react-toastify';
+import { toast } from "react-toastify";
 
 const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
@@ -18,7 +24,6 @@ const OTPPage: React.FC = () => {
   const [error, setError] = useState("");
   const [shake, setShake] = useState(false);
   const router = useRouter();
-
   const [verifyOtp, { loading }] = useMutation(VERIFY_OTP_MUTATION);
   const [resendOtp, { loading: resendLoading }] = useMutation(RESEND_OTP_MUTATION);
 
@@ -38,7 +43,6 @@ const OTPPage: React.FC = () => {
       newOtp[index] = value;
       setOtp(newOtp);
       setError("");
-      // Auto-focus next field if value entered
       if (value && index < 5) {
         const nextInput = document.getElementById(`otp-${index + 1}`);
         nextInput?.focus();
@@ -66,19 +70,16 @@ const OTPPage: React.FC = () => {
   const handleResend = async () => {
     try {
       const urlParams = new URLSearchParams(window.location.search);
-      const email = urlParams.get('email');
-
+      const email = urlParams.get("email");
       if (!email) {
         toast.error("Email not found. Please try signing up again.");
-        router.push('/auth/signup');
+        router.push("/auth/signup");
         return;
       }
-
       const input: ResendOtpInput = { email };
       const response = await resendOtp({ variables: { input } });
-      
       const result = response.data.resendOtp;
-      
+
       if (result.status === "success") {
         setOtp(Array(6).fill(""));
         setTimer(90);
@@ -89,7 +90,7 @@ const OTPPage: React.FC = () => {
         toast.error(result.message || "Failed to resend OTP. Please try again.");
       }
     } catch (error) {
-      console.error('Resend OTP error:', error);
+      console.error("Resend OTP error:", error);
       toast.error("An unexpected error occurred. Please try again.");
     }
   };
@@ -101,54 +102,39 @@ const OTPPage: React.FC = () => {
 
     setError("");
     try {
-      // Get email from URL params instead of localStorage
       const urlParams = new URLSearchParams(window.location.search);
-      const email = urlParams.get('email');
+      const email = urlParams.get("email");
+      const flow = urlParams.get("flow") || "signup";
 
       if (!email) {
-        toast.error("Email not found. Please try signing up again.");
-        router.push('/auth/signup');
+        toast.error("Email not found. Please try again.");
+        router.push("/auth/signup");
         return;
       }
 
-      const input: VerifyOtpInput = {
-        email,
-        otpCode
-      };
+      const input: VerifyOtpInput = { email, otpCode };
+      const response = await verifyOtp({ variables: { input } });
+      const result = response?.data?.verifyOtp;
 
-      const response = await verifyOtp({
-        variables: { input }
-      });
-
-      console.log('OTP Verification response:', response.data.verifyOtp);
-
-      if (response.data.verifyOtp.status === "error" || response.data.verifyOtp.error) {
-        console.log("Showing error toast:", response.data.verifyOtp.message);
-        toast.error(response.data.verifyOtp.message || "Invalid OTP. Please try again.");
+      if (result?.status === "error" || result?.error) {
+        toast.error(result?.message || "Invalid OTP. Please try again.");
         setShake(true);
         setTimeout(() => setShake(false), 500);
         return;
       }
 
-      if (response.data.verifyOtp.status === "success") {
-        console.log("OTP Verified successfully");
-        console.log("Showing success toast:", response.data.verifyOtp.message);
-        
-        // Show success toast
-if (response.data.verifyOtp.status === "success") {
-  toast.success(response.data.verifyOtp.message || "OTP verified successfully!");
-  setTimeout(() => {
-    router.push(`/auth/create-password?email=${encodeURIComponent(email)}`);
-  }, 1500); // 1.5 sec delay so toast is visible
-}
+      if (result?.status === "success") {
+        toast.success(result?.message || "OTP verified successfully!");
+        setTimeout(() => {
+          router.push(`/auth/create-password?email=${encodeURIComponent(email)}&flow=${flow}`);
+        }, 1500);
       } else {
-        console.log("Showing fallback error toast");
-        toast.error(response.data.verifyOtp.message || "Verification failed. Please try again.");
+        toast.error(result?.message || "Verification failed. Please try again.");
         setShake(true);
-        setTimeout(() => setShake(false), 1500);
+        setTimeout(() => setShake(false), 500);
       }
     } catch (err) {
-      console.error('OTP Verification error:', err);
+      console.error("OTP Verification error:", err);
       toast.error("An unexpected error occurred. Please try again.");
       setShake(true);
       setTimeout(() => setShake(false), 500);
@@ -158,7 +144,7 @@ if (response.data.verifyOtp.status === "success") {
   const isOtpComplete = otp.join("").length === 6;
 
   return (
-    <Box className={`${inter.className}`} minHeight="100vh" display="flex" position="relative" bgcolor="#fff">
+    <Box sx={{ display: "flex", height: "100vh", bgcolor: "#fff" }} className={inter.className}>
       {/* Background Overlay */}
       <Box
         sx={{
@@ -167,169 +153,174 @@ if (response.data.verifyOtp.status === "success") {
           backgroundImage: "url('/login_bg.svg')",
           backgroundSize: "cover",
           backgroundPosition: "center",
-          opacity: 0.07,
+          opacity: 0.1,
           zIndex: 0,
         }}
       />
-      {/* Left Form Section */}
+
+      {/* Left Section */}
       <Box
-        flex={1}
-        display="flex"
-        flexDirection="column"
-        justifyContent="space-between"
-        px={{ xs: 4, md: 16 }}
-        py={6}
-        position="relative"
-        zIndex={1}
+        sx={{
+          flex: 1.1,
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-between",
+          alignItems: "center",
+          px: { xs: 1.5, md: 2 },
+          py: { xs: 0.5, md: 1 },
+          height: "100vh",
+          position: "relative",
+        }}
       >
         {/* Logo */}
-        <Box display="flex" justifyContent="center" mb={4}>
-          <Image src="/medical-logo.png" alt="Company Logo" width={160} height={160} style={{ objectFit: "contain" }} priority />
+        <Box sx={{ mt: { xs: 0, xl: "13px" } }}>
+          <Image
+            src="/medical-logo.png"
+            alt="Company Logo"
+            width={0}
+            height={0}
+            sizes="(max-width: 600px) 40px, (max-width: 900px) 60px, 160px"
+            style={{ objectFit: "contain", width: "clamp(160px, 12vw, 160px)", height: "auto" }}
+            priority
+          />
         </Box>
 
-        {/* OTP Section */}
-        <Box maxWidth="md" mx="auto" width="100%">
-          <Box mb={6} textAlign="center">
-            <Typography variant="h5" fontWeight={700} fontSize={28} color="#3D3D3D">
+        {/* OTP Form */}
+        <Box
+          component="form"
+          onSubmit={handleSubmit}
+          sx={{
+            width: "100%",
+            maxWidth: 420,
+            display: "flex",
+            flexDirection: "column",
+            gap: { xs: 1, md: 2 },
+            py: { xs: 0, md: 2 },
+            position: "relative",
+            zIndex: 1,
+          }}
+        >
+          <Box textAlign="center">
+            <Typography fontWeight={700} fontSize={{ xs: "clamp(16px,1.8vw,20px)", lg: "20px" }} color="#3D3D3D">
               OTP Verification
             </Typography>
-            <Typography variant="body1" color="#6b7280">
+            <Typography fontSize="clamp(11px,1.3vw,13px)" color="#6b7280">
               Please enter the 6 digit code to continue
             </Typography>
           </Box>
 
-          {/* OTP Fields */}
-          <Box
-            component="form"
-            onSubmit={handleSubmit}
-            display="flex"
-            flexDirection="column"
-            gap={2}
-            maxWidth={500}
-            width="100%"
-            mx="auto"
-          >
-            <Box display="flex" justifyContent="center" gap={2} className={shake ? "shake" : ""}>
-              {otp.map((digit, idx) => (
-                <TextField
-                  key={idx}
-                  id={`otp-${idx}`}
-                  value={digit}
-                  onChange={(e) => handleChange(e.target.value, idx)}
-                  onKeyDown={(e) => handleKeyDown(e, idx)}
-                  onPaste={idx === 0 ? handlePaste : undefined}
-                  inputProps={{
-                    maxLength: 1,
-                    style: {
-                      textAlign: "center",
-                      fontSize: "1.5rem",
-                      fontWeight: 600,
-                      padding: "12px",
-                      width: "48px",
-                    },
-                    disabled: loading,
-                  }}
-                  sx={{
-                    "& .MuiOutlinedInput-root": {
-                      borderRadius: "8px",
-                      "& fieldset": { borderColor: "#a8a8a8" },
-                      "&:hover fieldset": { borderColor: "#808080" },
-                      "&.Mui-focused fieldset": { borderColor: "#4285F4" },
-                    },
-                  }}
-                />
-              ))}
-            </Box>
-            {error && (
-              <Typography color="error" textAlign="center" fontSize="0.9rem">
-                {error}
-              </Typography>
-            )}
-<Button
-  fullWidth
-  variant="contained"
-  type="submit"
-  disabled={!isOtpComplete || loading}
-  sx={{
-    backgroundColor: "#4285F4",
-    fontWeight: 600,
-    textTransform: "none",
-    borderRadius: "8px",
-    py: 2,
-    fontSize: "18px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 1.5,
-    "&:hover": { backgroundColor: "#3367D6" },
-    "&:disabled": { backgroundColor: "#ccc", cursor: "not-allowed" },
-  }}
->
-  {loading ? (
-    <>
-      Verifying OTP...
-      <CircularProgress size={20} sx={{ color: "#fff" }} />
-    </>
-  ) : (
-    "Continue"
-  )}
-</Button>
-
-
-  
-
-            <Typography textAlign="center" color="#6b7280" mt={2}>
-              Didn’t receive the code?{" "}
-              {isResendEnabled ? (
-                <Typography
-                  component="span"
-                  sx={{ 
-                    color: resendLoading ? "#ccc" : "#4285F4", 
-                    fontWeight: 500, 
-                    cursor: resendLoading ? "not-allowed" : "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 0.5
-                  }}
-                  onClick={resendLoading ? undefined : handleResend}
-                >
-                  {resendLoading ? (
-                    <>
-                      Resending...
-                      <CircularProgress size={12} sx={{ color: "#ccc" }} />
-                    </>
-                  ) : (
-                    "Resend"
-                  )}
-                </Typography>
-              ) : (
-                <span>
-                  Resend in{' '}
-                  <span style={{ color: '#4285F4', fontWeight: 500 }}>
-                    {`${Math.floor(timer / 60)
-                      .toString()
-                      .padStart(2, "0")}:${(timer % 60).toString().padStart(2, "0")}`}
-                  </span>
-                </span>
-              )}
-            </Typography>
+          {/* OTP Input Boxes */}
+          <Box display="flex" justifyContent="center" gap={1.5} className={shake ? "shake" : ""} mb={1}>
+            {otp.map((digit, idx) => (
+              <TextField
+                key={idx}
+                id={`otp-${idx}`}
+                value={digit}
+                onChange={(e) => handleChange(e.target.value, idx)}
+                onKeyDown={(e) => handleKeyDown(e, idx)}
+                onPaste={idx === 0 ? handlePaste : undefined}
+                inputProps={{
+                  maxLength: 1,
+                  style: {
+                    textAlign: "center",
+                    fontSize: "1.5rem",
+                    fontWeight: 600,
+                    padding: "12px",
+                    width: "48px",
+                  },
+                  disabled: loading,
+                }}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "8px",
+                    "& fieldset": { borderColor: "#a8a8a8" },
+                    "&:hover fieldset": { borderColor: "#808080" },
+                    "&.Mui-focused fieldset": { borderColor: "#4285F4" },
+                  },
+                }}
+              />
+            ))}
           </Box>
+          {error && (
+            <Typography color="error" textAlign="center" fontSize="0.9rem">
+              {error}
+            </Typography>
+          )}
+
+          {/* Continue Button */}
+          <Button
+            fullWidth
+            variant="contained"
+            type="submit"
+            disabled={!isOtpComplete || loading}
+            sx={{
+              backgroundColor: "#4285F4",
+              fontWeight: 600,
+              textTransform: "none",
+              borderRadius: "8px",
+              py: { sm: 0.8, xl: 2 },
+              fontSize: "clamp(12px,1.5vw,14px)",
+            }}
+          >
+            {loading ? (
+              <>
+                Verifying...
+                <CircularProgress size={22} sx={{ color: "#fff", ml: 1 }} />
+              </>
+            ) : (
+              "Continue"
+            )}
+          </Button>
+
+          {/* Resend OTP */}
+          <Typography textAlign="center" color="#6b7280" mt={1} fontSize="clamp(11px,1.3vw,13px)">
+            Didn’t receive the code?{" "}
+            {isResendEnabled ? (
+              <Typography
+                component="span"
+                sx={{
+                  color: resendLoading ? "#ccc" : "#4285F4",
+                  fontWeight: 500,
+                  cursor: resendLoading ? "not-allowed" : "pointer",
+                }}
+                onClick={resendLoading ? undefined : handleResend}
+              >
+                {resendLoading ? (
+                  <>
+                    Resending...
+                    <CircularProgress size={12} sx={{ color: "#ccc", ml: 0.5 }} />
+                  </>
+                ) : (
+                  "Resend"
+                )}
+              </Typography>
+            ) : (
+              <span>
+                Resend in{" "}
+                <span style={{ color: "#4285F4", fontWeight: 500 }}>
+                  {`${Math.floor(timer / 60).toString().padStart(2, "0")}:${(timer % 60)
+                    .toString()
+                    .padStart(2, "0")}`}
+                </span>
+              </span>
+            )}
+          </Typography>
         </Box>
 
-        {/* Bottom Text */}
-        <Box mt={6} px={{ xs: 2, sm: 4, md: 6 }}>
+        {/* Footer Text */}
+        <Box mb={{ sm: 0, xl: 3 }} position="relative" zIndex={1}>
           <Typography
-            variant="body1"
             sx={{
-              color: "#6b7280",
+              mb: { sm: 0, xl: 3 },
+              color: "#6B7280",
               textAlign: "center",
               maxWidth: "90%",
               mx: "auto",
-              lineHeight: 1.7,
-              fontSize: { xs: "0.8rem", sm: "0.85rem", md: "16px" },
+              lineHeight: 1.2,
+              fontSize: "clamp(9px,1vw,16px)",
             }}
           >
-           Join our platform to securely manage your healthcare facility, collaborate with your team, and access tools that enhance patient care.
+            Join our platform to securely manage your healthcare facility, collaborate with your team, and access tools that enhance patient care.
           </Typography>
         </Box>
       </Box>
@@ -338,30 +329,28 @@ if (response.data.verifyOtp.status === "success") {
       <Box
         sx={{
           display: { xs: "none", lg: "flex" },
-          flex: 1.1,
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: "#fff",
-          borderRadius: "0 24px 24px 0",
+          flex: 1,
+          height: "calc(100% - 60px)",
+          mt: "30px",
+          mb: "30px",
+          position: "relative",
+          borderRadius: "24px",
           overflow: "hidden",
         }}
       >
         <Image
           src="/login_bg.svg"
           alt="Doctor"
-          layout="intrinsic"
-          width={700}
-          height={800}
+          fill
           style={{
             objectFit: "cover",
-            width: "100%",
-            height: "100%",
-            borderRadius: "0 24px 24px 0",
+            borderRadius: "24px",
           }}
           priority
         />
       </Box>
 
+      {/* Shake Animation */}
       <style jsx global>{`
         .shake {
           animation: shake 0.4s ease;
