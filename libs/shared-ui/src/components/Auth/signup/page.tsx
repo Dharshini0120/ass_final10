@@ -63,13 +63,7 @@ const SignUpPage: React.FC = () => {
   const { data: serviceLinesData } = useQuery<GetServiceLinesData>(GET_SERVICE_LINES);
   const serviceLines =
     serviceLinesData?.getServiceLines?.data?.filter((line) => line.isActive)?.map((line) => line.name) ||
-    [
-      'Ambulatory Surgical',
-      'Emergency Department',
-      'Inpatient Services',
-      'Outpatient Services',
-      'Specialty Care',
-    ];
+    ['Ambulatory Surgical', 'Emergency Department', 'Inpatient Services', 'Outpatient Services', 'Specialty Care'];
 
   const [form, setForm] = useState<FormState>({
     fullName: '',
@@ -97,7 +91,6 @@ const SignUpPage: React.FC = () => {
     serviceLine: 'Service Lines',
   };
 
-  // Validation
   const validateField = (name: string, value: any) => {
     const label = fieldLabels[name as keyof FormState] || name;
     if (!value || (Array.isArray(value) && value.length === 0)) return `${label} is required`;
@@ -117,10 +110,8 @@ const SignUpPage: React.FC = () => {
     return '';
   };
 
-  // Handle changes with restrictions
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-
     if (name === 'fullName') {
       const filtered = value.replace(/[^A-Za-z ]/g, '').slice(0, 50);
       setForm({ ...form, [name]: filtered });
@@ -144,14 +135,9 @@ const SignUpPage: React.FC = () => {
     setForm({ ...form, [name]: value });
   };
 
-  const handleSelectChange = (name: string, value: any) => {
-    setForm({ ...form, [name]: value });
-  };
-
-  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setErrors((prev) => ({ ...prev, [name]: validateField(name, value) }));
-  };
+  const handleSelectChange = (name: string, value: any) => setForm({ ...form, [name]: value });
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) =>
+    setErrors((prev) => ({ ...prev, [e.target.name]: validateField(e.target.name, e.target.value) }));
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
@@ -192,7 +178,6 @@ const SignUpPage: React.FC = () => {
         numberOfLicensedBeds: parseInt(form.beds),
         serviceLines: form.serviceLine,
       };
-
       const response = await signUp({ variables: { input } });
       const result = response?.data?.signUp;
 
@@ -200,15 +185,10 @@ const SignUpPage: React.FC = () => {
         toast.error("An account with this email address already exists");
         return;
       }
-
       if (result?.status) {
         toast.success('Registration initiated successfully! Check your email for OTP.');
-        setTimeout(() => {
-          router.push(`/auth/otp-verification?email=${encodeURIComponent(form.email)}`);
-        }, 1000);
-      } else {
-        toast.error(result?.message || 'Registration failed');
-      }
+        setTimeout(() => router.push(`/auth/otp-verification?email=${encodeURIComponent(form.email)}`), 1000);
+      } else toast.error(result?.message || 'Registration failed');
     } catch (error) {
       console.error('Registration error:', error);
       toast.error('An unexpected error occurred. Please try again.');
@@ -217,7 +197,7 @@ const SignUpPage: React.FC = () => {
     }
   };
 
-  const menuProps = {
+ const menuProps = {
     disableScrollLock: true,
     disablePortal: true,
     PaperProps: { sx: { maxHeight: 250 } },
@@ -406,84 +386,102 @@ const SignUpPage: React.FC = () => {
   };
 
   return (
-    <Box minHeight="100vh" display="flex" position="relative" bgcolor="#fff">
-      {/* Background */}
-      <Box sx={{
-        position: 'absolute',
-        inset: 0,
-        backgroundImage: "url('/login_bg.svg')",
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        opacity: 0.07,
-        zIndex: 0,
-      }} />
+<Box sx={{ display: "flex", bgcolor: "#fff", position: "relative", minHeight: "100vh" }}>
 
-      {/* Left - Form */}
-      <Box flex={1} display="flex" flexDirection="column" justifyContent="space-between" px={{ xs: 3, md: 16 }} py={6} position="relative" zIndex={1}>
-        <Box display="flex" justifyContent="center" mb={4}>
-          <Image src="/medical-logo.png" alt="Company Logo" width={160} height={160} style={{ objectFit: 'contain' }} priority />
+      {/* Background Image */}
+     {/* Background Overlay */}
+<Box
+  sx={{
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundImage: "url('/login_bg.svg')",
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    opacity: 0.1,
+    zIndex: 0,
+    minHeight: "100%",   // <-- important: matches content height
+  }}
+/>
+      
+      {/* Left Content */}
+      <Box sx={{ flex: 1.1, display: "flex", flexDirection: "column", justifyContent: "space-between", alignItems: "center", px: 2, py: 1, position: "relative", zIndex: 1 }}>
+        <Box sx={{ mt: { xs: 0, xl: "13px" } }}>
+          <Image src="/medical-logo.png" alt="Company Logo" width={0} height={0} sizes="160px" style={{ objectFit: "contain", width: "clamp(160px, 12vw, 160px)", height: "auto" }} priority />
         </Box>
 
-        <Box maxWidth="md" mx="auto" width="100%">
-          <Box mb={6} textAlign="center">
-            <Typography variant="h5" fontWeight={700} fontSize={{ xs: 22, md: 28 }} color="#3D3D3D">
-              Create Account
-            </Typography>
-            <Typography variant="body1" color="#6b7280" fontSize={{ xs: 14, md: 16 }}>
-              Please enter your details to continue
-            </Typography>
+        <Box component="form" onSubmit={handleContinue} sx={{ width: "100%", maxWidth: 740, display: "flex", flexDirection: "column", gap: 2,  py: { xs: 0, md: 2 },}}>
+          <Box textAlign="center">
+            <Typography fontWeight={700} fontSize="20px" color="#3D3D3D">Create Account</Typography>
+            <Typography fontSize="13px" color="#6b7280">Please enter your details to continue</Typography>
           </Box>
 
           {/* Tabs */}
-          <Box position="relative" display="flex" width="100%" maxWidth={500} mb={6} mx="auto" borderRadius={2} bgcolor="#f0eeed" p={1}>
-            <Box position="absolute" top={8} left={tab === 0 ? 8 : '50%'} width="calc(50% - 8px)" height="calc(100% - 16px)" borderRadius={2} bgcolor="#fff" boxShadow={1} zIndex={1} sx={{ transition: 'left 0.3s cubic-bezier(.4,1.3,.6,1)' }} />
-            <Button onClick={() => { setTab(0); router.push('/auth/signin'); }} sx={{ flex: 1, py: 2, fontWeight: tab === 0 ? 700 : 500, fontSize: '1rem', zIndex: 2, color: tab === 0 ? '#000' : '#9ca3af', textTransform: 'none' }}>Sign In</Button>
-            <Button onClick={() => { setTab(1); router.push('/auth/signup'); }} sx={{ flex: 1, py: 2, fontWeight: tab === 1 ? 700 : 500, fontSize: '1rem', zIndex: 2, color: tab === 1 ? '#000' : '#9ca3af', textTransform: 'none' }}>Sign Up</Button>
+          <Box position="relative" display="flex" width="100%" maxWidth="420px" mx="auto" borderRadius={2} bgcolor="#f0eeed"  p={{ xs: 0.8, sm: 0.8, lg: 1 }} mb={3}>
+            <Box position="absolute" top={3} left={tab === 0 ? 3 : "50%"} width="calc(50% - 6px)" height="calc(100% - 6px)" borderRadius={2} bgcolor="#fff" boxShadow={1} zIndex={1} sx={{ transition: "left 0.3s cubic-bezier(.4,1.3,.6,1)" }} />
+            <Button onClick={() => { setTab(0); router.push("/auth/signin"); }} sx={{ flex: 1, fontWeight: tab === 0 ? 700 : 500, fontSize: "16px", zIndex: 2, color: tab === 0 ? "#000" : "#9ca3af", textTransform: "none" }}>Sign In</Button>
+            <Button onClick={() => { setTab(1); router.push("/auth/signup"); }} sx={{ flex: 1, fontWeight: tab === 1 ? 700 : 500, fontSize: "16px", zIndex: 2, color: tab === 1 ? "#000" : "#9ca3af", textTransform: "none" }}>Sign Up</Button>
           </Box>
 
-          {/* Form Fields */}
-          <Box component="form" display="flex" flexDirection="column" gap={3} maxWidth={740} width="100%" mx="auto" onSubmit={handleContinue}>
-            <Box display="flex" flexDirection={{ xs: 'column', md: 'row' }} gap={2}>
-              {renderField('fullName', 'Full Name', 'Full Name', <PersonIcon fontSize="small" style={{ opacity: 0.7 }} />)}
-              {renderField('email', 'Email Address', 'Email', <EmailIcon fontSize="small" style={{ opacity: 0.7 }} />)}
-            </Box>
-            <Box display="flex" flexDirection={{ xs: 'column', md: 'row' }} gap={2}>
-              {renderField('phone', 'Phone Number', 'Phone Number', <LocalPhoneIcon fontSize="small" style={{ opacity: 0.7 }} />)}
-              {renderField('facilityName', 'Facility Name', 'Facility Name', <BusinessIcon fontSize="small" style={{ opacity: 0.7 }} />)}
-            </Box>
-            <Box display="flex" flexDirection={{ xs: 'column', md: 'row' }} gap={2}>
-              {renderField('facilityType', 'Facility Type', 'Select Facility Type', <ApartmentIcon fontSize="small" style={{ opacity: 0.7 }} />, facilityTypes)}
-              {renderField('state', 'State', 'Select State', <LanguageIcon fontSize="small" style={{ opacity: 0.7 }} />, states)}
-            </Box>
-            <Box display="flex" flexDirection={{ xs: 'column', md: 'row' }} gap={2}>
-              {renderField('county', 'County', 'Select County', <LanguageIcon fontSize="small" style={{ opacity: 0.7 }} />, counties)}
-              {renderField('beds', 'Number of Licensed Beds', 'Enter number of beds', <HotelIcon fontSize="small" style={{ opacity: 0.7 }} />)}
-            </Box>
-            {renderField('serviceLine', 'What service lines exist at your Facility', 'Choose Service Line', <MiscellaneousServicesIcon fontSize="small" style={{ opacity: 0.7 }} />, serviceLines, true)}
-
-            {/* Button with loader */}
-            <Button variant="contained" type="submit" disabled={!isFormValid() || loading} sx={{
-              backgroundColor: '#4285F4', fontWeight: 600, textTransform: 'none', borderRadius: '8px',
-              height: '48px', width: { xs: '100%', sm: '500px' }, mx: 'auto', fontSize: '16px',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5,
-              '&:hover': { backgroundColor: '#3367D6' }, '&:disabled': { backgroundColor: '#ccc', cursor: 'not-allowed' },
-            }}>
-              {loading ? (<>Creating Account...<CircularProgress size={20} sx={{ color: "#fff" }} /></>) : 'Continue'}
-            </Button>
+          {/* Fields */}
+          <Box display="flex" flexDirection={{ xs: "column", md: "row" }} gap={2} px={{ sm: 2, md: 2 , lg: 0 }}>
+            {renderField("fullName", "Full Name", "Full Name", <PersonIcon fontSize="small" style={{ opacity: 0.7 }} />)}
+            {renderField("email", "Email Address", "Email", <EmailIcon fontSize="small" style={{ opacity: 0.7 }} />)}
           </Box>
+          <Box display="flex" flexDirection={{ xs: "column", md: "row" }} gap={2} px={{ sm: 2, md: 0 }}>
+            {renderField("phone", "Phone Number", "Phone Number", <LocalPhoneIcon fontSize="small" style={{ opacity: 0.7 }} />)}
+            {renderField("facilityName", "Facility Name", "Facility Name", <BusinessIcon fontSize="small" style={{ opacity: 0.7 }} />)}
+          </Box>
+          <Box display="flex" flexDirection={{ xs: "column", md: "row" }} gap={2} px={{ sm: 2, md: 0 }}>
+            {renderField("facilityType", "Facility Type", "Select Facility Type", <ApartmentIcon fontSize="small" style={{ opacity: 0.7 }} />, facilityTypes)}
+            {renderField("state", "State", "Select State", <LanguageIcon fontSize="small" style={{ opacity: 0.7 }} />, states)}
+          </Box>
+          <Box display="flex" flexDirection={{ xs: "column", md: "row" }} gap={2} px={{ sm: 2, md: 0 }}>
+            {renderField("county", "County", "Select County", <LanguageIcon fontSize="small" style={{ opacity: 0.7 }} />, counties)}
+            {renderField("beds", "Number of Licensed Beds", "Enter number of beds", <HotelIcon fontSize="small" style={{ opacity: 0.7 }} />)}
+          </Box>
+          {renderField("serviceLine", "What service lines exist at your Facility", "Choose Service Line", <MiscellaneousServicesIcon fontSize="small" style={{ opacity: 0.7 }} />, serviceLines, true)}
+          {/* Button */}
+          <Button variant="contained" type="submit" disabled={!isFormValid() || loading} sx={{ backgroundColor: "#4285F4", fontWeight: 600, textTransform: "none", borderRadius: "8px", py: 1, fontSize: "14px", width: "100%", maxWidth: "420px", mx: "auto",mb:2 }}>
+            {loading ? <>Creating Account... <CircularProgress size={20} sx={{ color: "#fff", ml: 1 }} /></> : "Continue"}
+          </Button>
         </Box>
 
-        <Box mt={6} px={{ xs: 2, sm: 4, md: 6 }}>
-          <Typography variant="body1" sx={{ color: '#6b7280', textAlign: 'center', maxWidth: '90%', mx: 'auto', lineHeight: 1.7, fontSize: { xs: '0.8rem', sm: '0.85rem', md: '16px' } }}>
+        <Box >
+          <Typography sx={{ color: "#6B7280", textAlign: "center", maxWidth: "90%", mx: "auto", lineHeight: 1.2, fontSize: "13px" ,mb: { sm: 0, xl: 3 }}}>
             Join our platform to securely manage your healthcare facility, collaborate with your team, and access tools that enhance patient care.
           </Typography>
         </Box>
       </Box>
 
       {/* Right Image */}
-      <Box sx={{ display: { xs: 'none', lg: 'flex' }, flex: 1.1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff', borderRadius: '0 24px 24px 0', overflow: 'hidden' }}>
-        <Image src="/login_bg.svg" alt="Doctor" layout="intrinsic" width={700} height={800} style={{ objectFit: 'cover', width: '100%', height: '100%', borderRadius: '0 24px 24px 0' }} priority />
-      </Box>
+     {/* Right Image */}
+<Box
+  sx={{
+    display: { xs: "none", lg: "flex" },
+    flex: 1,
+    alignSelf: "stretch",
+    mt: "30px",
+    mb: "30px",
+    position: "relative",
+    borderRadius: "24px",
+    overflow: "hidden",
+  }}
+>
+  <Image
+    src="/login_bg.svg"
+    alt="Doctor"
+    fill
+    style={{
+      objectFit: "cover",
+      borderRadius: "24px",
+    }}
+    priority
+  />
+</Box>
+
     </Box>
   );
 };
