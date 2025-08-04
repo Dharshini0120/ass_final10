@@ -18,7 +18,7 @@ import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { Inter } from "next/font/google";
 import { toast } from "react-toastify";
 import { useMutation } from "@apollo/client";
-import { SIGNIN_MUTATION } from "../../../graphql/mutations/auth"; // adjust import path
+import { SIGNIN_MUTATION } from "../../../graphql/mutations/auth";
 
 const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
@@ -72,333 +72,272 @@ const SharedSignIn = () => {
     return !emailError && !passwordError;
   };
 
-const handleContinue = async (event: React.FormEvent<HTMLFormElement>) => {
-  event.preventDefault();
-  if (!validateForm()) return;
+  const handleContinue = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!validateForm()) return;
 
-  try {
-    const res = await signIn({
-      variables: { input: { emailOrPhone: form.email, password: form.password } },
-    });
+    try {
+      const res = await signIn({
+        variables: { input: { emailOrPhone: form.email, password: form.password } },
+      });
 
-    const result = res.data?.signIn;
-    if (!result) {
-      toast.error("No response from server. Please try again.");
-      return;
+      const result = res.data?.signIn;
+      if (!result) {
+        toast.error("No response from server. Please try again.");
+        return;
+      }
+
+      if (result.status !== "success") {
+        toast.error(result.message || "Sign in failed. Please check your credentials or try again later.");
+        return;
+      }
+
+      toast.success("Sign in successful!");
+      const token = result.data?.token || null;
+      if (token) {
+        document.cookie = `token=${token}; path=/`;
+      }
+      router.push("/auth/otp-verification");
+    } catch (err: any) {
+      console.error("Login failed", err);
+      const gqlMessage =
+        err?.graphQLErrors?.[0]?.message ||
+        err?.message ||
+        "An unexpected error occurred. Please try again.";
+      toast.error(gqlMessage);
     }
-
-    if (result.status !== "success") {
-      // Show API-provided error or fallback message
-      const apiMessage = result.message || "Sign in failed. Please check your credentials or try again later.";
-      toast.error(apiMessage);
-      return;
-    }
-
-    // Success flow
-    toast.success("Sign in successful!");
-    const token = result.data?.token || null;
-    if (token) {
-      document.cookie = `token=${token}; path=/`;
-    }
-    router.push("/dashboard");
-  } catch (err: any) {
-    console.error("Login failed", err);
-    // Show GraphQL error message or fallback
-    const gqlMessage =
-      err?.graphQLErrors?.[0]?.message ||
-      err?.message ||
-      "An unexpected error occurred. Please try again.";
-    toast.error(gqlMessage);
-  }
-};
-
+  };
 
   const handleClickShowPassword = () => setShowPassword(!showPassword);
 
   return (
-    <Box
-      className={`${inter.className}`}
-      minHeight="100vh"
-      display="flex"
-      position="relative"
-      bgcolor="#fff"
-    >
-      {/* LEFT BACKGROUND IMAGE */}
+    <Box sx={{ display: "flex", height: "100vh", bgcolor: "#fff" }}>
+              {/* LEFT BACKGROUND IMAGE */}
+        <Box
+          sx={{
+            position: "absolute",
+            inset: 0,
+            backgroundImage: "url('/login_bg.svg')",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            opacity: 0.10,
+            zIndex: 0,
+          }}
+        />
+      {/* LEFT CONTENT */}
       <Box
         sx={{
-          position: "absolute",
-          inset: 0,
-          backgroundImage: "url('/login_bg.svg')",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          opacity: 0.07,
-          zIndex: 0,
+          flex: 1.1,
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-between",
+          alignItems: "center",
+          px: { xs: 1.5, md: 2 },
+          py: { xs: 0.5, md: 1 },
+          height: "100vh",
+          position: "relative",
         }}
-      />
-
-      {/* LEFT SIDE - FORM */}
-      <Box
-        flex={1}
-        display="flex"
-        flexDirection="column"
-        justifyContent="space-between"
-        px={{ xs: 4, md: 16 }}
-        py={6}
-        position="relative"
-        zIndex={1}
       >
         {/* LOGO */}
-        <Box display="flex" justifyContent="center" mb={4}>
-          <Image
-            src="/medical-logo.png"
-            alt="Company Logo"
-            width={160}
-            height={160}
-            style={{ objectFit: "contain" }}
-            priority
-          />
+        <Box 
+            sx={{ mt: { xs: 0, xl: "13px" } }}
+          >
+            <Image
+              src="/medical-logo.png"
+              alt="Company Logo"
+              width={0}
+              height={0}
+              sizes="(max-width: 600px) 40px, (max-width: 900px) 60px, 160px"
+              style={{ objectFit: "contain", width: "clamp(160px, 12vw, 160px)", height: "auto" }}
+              priority
+            />
         </Box>
 
-        {/* FORM SECTION */}
-        <Box maxWidth="md" mx="auto" width="100%">
-          <Box mb={6} textAlign="center">
-            <Typography variant="h5" fontWeight={700} fontSize={28} color="#3D3D3D">
+
+
+        {/* FORM */}
+        <Box
+          component="form"
+          onSubmit={handleContinue}
+          sx={{
+            width: "100%",
+            maxWidth: 420,
+            display: "flex",
+            flexDirection: "column",
+            gap: { xs: 1, md: 2 },
+            py: { xs: 0, md: 2 },
+            position: "relative",
+            zIndex: 1,
+          }}
+        >
+          <Box textAlign="center">
+            <Typography fontWeight={700} fontSize={{ xs: "clamp(16px,1.8vw,20px)", lg: "20px" }} color="#3D3D3D">
               Welcome Back
             </Typography>
-            <Typography variant="body1" color="#6b7280">
+            <Typography fontSize="clamp(11px,1.3vw,13px)" color="#6b7280">
               Please enter your details to continue
             </Typography>
           </Box>
 
-          {/* TABS */}
-          <Box
-            position="relative"
-            display="flex"
-            width="100%"
-            maxWidth={500}
-            mb={6}
-            mx="auto"
-            borderRadius={2}
-            bgcolor="#f0eeed"
-            p={1}
-          >
-            <Box
-              position="absolute"
-              top={8}
-              left={tab === 0 ? 8 : "50%"}
-              width="calc(50% - 8px)"
-              height="calc(100% - 16px)"
-              borderRadius={2}
-              bgcolor="#fff"
-              boxShadow={1}
-              zIndex={1}
-              sx={{ transition: "left 0.3s cubic-bezier(.4,1.3,.6,1)" }}
-            />
-            <Button
-              key="signin-tab"
-              onClick={() => {
-                setTab(0);
-                router.push("/auth/signin");
-              }}
-              sx={{
-                flex: 1,
-                py: 2,
-                fontWeight: tab === 0 ? 700 : 500,
-                fontSize: "1rem",
-                zIndex: 2,
-                color: tab === 0 ? "#000" : "#9ca3af",
-                textTransform: "none",
-              }}
-            >
-              Sign In
-            </Button>
-            <Button
-              key="signup-tab"
-              onClick={() => {
-                setTab(1);
-                router.push("/auth/signup");
-              }}
-              sx={{
-                flex: 1,
-                py: 2,
-                fontWeight: tab === 1 ? 700 : 500,
-                fontSize: "1rem",
-                zIndex: 2,
-                color: tab === 1 ? "#000" : "#9ca3af",
-                textTransform: "none",
-              }}
-            >
-              Sign Up
-            </Button>
-          </Box>
+          {/* Tabs */}
+            {/* Tabs */}
+                    <Box position="relative" display="flex" width="100%" maxWidth="420px" mx="auto" borderRadius={2} bgcolor="#f0eeed"  p={{ xs: 0.8, sm: 0.8, lg: 1 }} mb={3}>
+                      <Box position="absolute" top={3} left={tab === 0 ? 3 : "50%"} width="calc(50% - 6px)" height="calc(100% - 6px)" borderRadius={2} bgcolor="#fff" boxShadow={1} zIndex={1} sx={{ transition: "left 0.3s cubic-bezier(.4,1.3,.6,1)" }} />
+                      <Button onClick={() => { setTab(0); router.push("/auth/signin"); }} sx={{ flex: 1, fontWeight: tab === 0 ? 700 : 500, fontSize: "16px", zIndex: 2, color: tab === 0 ? "#000" : "#9ca3af", textTransform: "none" }}>Sign In</Button>
+                      <Button onClick={() => { setTab(1); router.push("/auth/signup"); }} sx={{ flex: 1, fontWeight: tab === 1 ? 700 : 500, fontSize: "16px", zIndex: 2, color: tab === 1 ? "#000" : "#9ca3af", textTransform: "none" }}>Sign Up</Button>
+                    </Box>
 
-          {/* FORM */}
-          <Box
-            component="form"
-            display="flex"
-            flexDirection="column"
-            gap={4}
-            maxWidth={500}
-            width="100%"
-            mx="auto"
-            onSubmit={handleContinue}
-          >
-            {/* EMAIL */}
-            <TextField
-              name="email"
-              value={form.email}
-              onChange={handleInputChange}
-              onBlur={handleBlur}
-              label="Email or Phone Number"
-              placeholder="Email"
-              fullWidth
-              error={!!errors.email}
-              helperText={errors.email || " "}
-              FormHelperTextProps={{ sx: { minHeight: "20px" } }}
-              InputLabelProps={{
-                shrink: true,
-                sx: {
-                  fontSize: "0.95rem",
-                  color: "#9ca3af",
-                  "&.Mui-focused": { color: "#9ca3af" },
-                  transform: "translate(14px, 16px) scale(1)",
-                  "&.MuiInputLabel-shrink": {
-                    transform: "translate(14px, -8px) scale(0.85)",
-                    backgroundColor: "#fff",
-                    px: 0.5,
-                  },
-                },
-              }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start" sx={{ pr: 1 }}>
-                    <EmailIcon fontSize="small" style={{ opacity: 0.7 }} />
-                    <Box sx={{ height: 28, width: "1px", bgcolor: "#b0b0b0", ml: 1 }} />
-                  </InputAdornment>
-                ),
-                sx: {
-                  borderRadius: "12px",
+          {/* EMAIL FIELD */}
+          <TextField
+            name="email"
+            value={form.email}
+            onChange={handleInputChange}
+            onBlur={handleBlur}
+            label="Email or Phone Number"
+            placeholder="Email"
+            fullWidth
+            error={!!errors.email}
+            helperText={errors.email || " "}
+            FormHelperTextProps={{ sx: { minHeight: "20px" } }}
+            InputLabelProps={{
+              shrink: true,
+              sx: {
+                fontSize: "0.95rem",
+                color: "#9ca3af",
+                "&.Mui-focused": { color: "#9ca3af" },
+                transform: "translate(14px, 16px) scale(1)",
+                "&.MuiInputLabel-shrink": {
+                  transform: "translate(14px, -8px) scale(0.85)",
                   backgroundColor: "#fff",
-                  "& fieldset": { borderColor: "#a8a8a8" },
-                  "&:hover fieldset": { borderColor: "#808080" },
-                  "&.Mui-focused fieldset": { borderColor: "#4285F4" },
-                  fontSize: "1rem",
-                  py: 0.5,
+                  px: 0.5,
                 },
-              }}
-              variant="outlined"
-            />
+              },
+            }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start" sx={{ pr: 1 }}>
+                  <EmailIcon fontSize="small" style={{ opacity: 0.7 }} />
+                  <Box sx={{ height: 28, width: "1px", bgcolor: "#b0b0b0", ml: 1 }} />
+                </InputAdornment>
+              ),
+              sx: {
+                borderRadius: "12px",
+                backgroundColor: "#fff",
+                "& fieldset": { borderColor: "#a8a8a8" },
+                "&:hover fieldset": { borderColor: "#808080" },
+                "&.Mui-focused fieldset": { borderColor: "#4285F4" },
+                fontSize: "1rem",
+                py: 0.5,
+              },
+            }}
+            variant="outlined"
+          />
 
-            {/* PASSWORD */}
-            <TextField
-              name="password"
-              value={form.password}
-              onChange={handleInputChange}
-              onBlur={handleBlur}
-              label="Password"
-              placeholder="Password"
-              type={showPassword ? "text" : "password"}
-              fullWidth
-              error={!!errors.password}
-              helperText={errors.password || " "}
-              FormHelperTextProps={{ sx: { minHeight: "20px" } }}
-              InputLabelProps={{
-                shrink: true,
-                sx: {
-                  fontSize: "0.95rem",
-                  color: "#9ca3af",
-                  "&.Mui-focused": { color: "#9ca3af" },
-                  transform: "translate(14px, 16px) scale(1)",
-                  "&.MuiInputLabel-shrink": {
-                    transform: "translate(14px, -8px) scale(0.85)",
-                    backgroundColor: "#fff",
-                    px: 0.5,
-                  },
-                },
-              }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start" sx={{ pr: 1 }}>
-                    <Lock fontSize="small" style={{ opacity: 0.7 }} />
-                    <Box sx={{ height: 28, width: "1px", bgcolor: "#b0b0b0", ml: 1 }} />
-                  </InputAdornment>
-                ),
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton onClick={handleClickShowPassword}>
-                      {showPassword ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-                sx: {
-                  borderRadius: "12px",
+          {/* PASSWORD FIELD */}
+          <TextField
+            name="password"
+            value={form.password}
+            onChange={handleInputChange}
+            onBlur={handleBlur}
+            label="Password"
+            placeholder="Password"
+            type={showPassword ? "text" : "password"}
+            fullWidth
+            error={!!errors.password}
+            helperText={errors.password || " "}
+            FormHelperTextProps={{ sx: { minHeight: "20px" } }}
+            InputLabelProps={{
+              shrink: true,
+              sx: {
+                fontSize: "0.95rem",
+                color: "#9ca3af",
+                "&.Mui-focused": { color: "#9ca3af" },
+                transform: "translate(14px, 16px) scale(1)",
+                "&.MuiInputLabel-shrink": {
+                  transform: "translate(14px, -8px) scale(0.85)",
                   backgroundColor: "#fff",
-                  "& fieldset": { borderColor: "#a8a8a8" },
-                  "&:hover fieldset": { borderColor: "#808080" },
-                  "&.Mui-focused fieldset": { borderColor: "#4285F4" },
-                  fontSize: "1rem",
-                  py: 0.5,
+                  px: 0.5,
                 },
-              }}
-              variant="outlined"
-            />
+              },
+            }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start" sx={{ pr: 1 }}>
+                  <Lock fontSize="small" style={{ opacity: 0.7 }} />
+                  <Box sx={{ height: 28, width: "1px", bgcolor: "#b0b0b0", ml: 1 }} />
+                </InputAdornment>
+              ),
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton onClick={handleClickShowPassword}>
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+              sx: {
+                borderRadius: "12px",
+                backgroundColor: "#fff",
+                "& fieldset": { borderColor: "#a8a8a8" },
+                "&:hover fieldset": { borderColor: "#808080" },
+                "&.Mui-focused fieldset": { borderColor: "#4285F4" },
+                fontSize: "1rem",
+                py: 0.5,
+              },
+            }}
+            variant="outlined"
+          />
 
-            {/* CONTINUE BUTTON WITH LOADER */}
-           <Button
-  fullWidth
-  variant="contained"
-  type="submit"
-  disabled={loading}
-  sx={{
-    backgroundColor: "#4285F4",
-    fontWeight: 600,
-    textTransform: "none",
-    borderRadius: "8px",
-    py: 2,
-    fontSize: "18px",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 1.5, // space between text and loader
-    "&:hover": { backgroundColor: "#3367D6" },
-    "&:disabled": { backgroundColor: "#ccc" },
-  }}
->
-  {loading ? (
-    <>
-      Signing in...
-      <CircularProgress size={22} sx={{ color: "#fff" }} />
-    </>
-  ) : (
-    "Continue"
-  )}
-</Button>
+          {/* CONTINUE BUTTON */}
+          <Button
+            fullWidth
+            variant="contained"
+            type="submit"
+            disabled={loading}
+            sx={{
+              backgroundColor: "#4285F4",
+              fontWeight: 600,
+              textTransform: "none",
+              borderRadius: "8px",
+              py: {sm:0.8,xl:2},
+              fontSize: "clamp(12px,1.5vw,14px)",
+            }}
+          >
+            {loading ? (
+              <>
+                Signing in...
+                <CircularProgress size={22} sx={{ color: "#fff", ml: 1 }} />
+              </>
+            ) : (
+              "Continue"
+            )}
+          </Button>
 
-          </Box>
-
-          {/* FORGOT PASSWORD */}
-          <Box textAlign="center" mt={3}>
-            <Typography
-              variant="body1"
-              sx={{ color: "#6b7280", textDecoration: "underline" , cursor: "pointer" }}
-              onClick={() => router.push("/auth/forgot-password")}
-            >
-              Forgot Password?
-            </Typography>
-          </Box>
-        </Box>
-
-        {/* BOTTOM TEXT */}
-        <Box mt={6} px={{ xs: 2, sm: 4, md: 6 }}>
+          {/* Forgot Password */}
           <Typography
-            variant="body1"
             sx={{
               color: "#6b7280",
+              textDecoration: "underline",
+              cursor: "pointer",
+              textAlign: "center",
+              fontSize: "clamp(11px,1.3vw,13px)",
+            }}
+            onClick={() => router.push("/auth/forgot-password")}
+          >
+            Forgot Password?
+          </Typography>
+        </Box>
+
+        {/* Bottom Text */}
+        <Box mb={{sm:0,xl:3}} position="relative" zIndex={1}>
+          <Typography
+            sx={{
+              mb: { sm: 0, xl: 3 },
+              color: "#6B7280",
               textAlign: "center",
               maxWidth: "90%",
               mx: "auto",
-              lineHeight: 1.7,
-              fontSize: { xs: "0.8rem", sm: "0.85rem", md: "16px" },
+              lineHeight: 1.2,
+              fontSize: "clamp(9px,1vw,16px)",
             }}
           >
             Join our platform to securely manage your healthcare facility, collaborate with your team, and access tools that enhance patient care.
@@ -406,29 +345,26 @@ const handleContinue = async (event: React.FormEvent<HTMLFormElement>) => {
         </Box>
       </Box>
 
-      {/* RIGHT SIDE IMAGE */}
+  {/* RIGHT IMAGE WITH ROUNDED CORNERS & MARGIN */}
       <Box
         sx={{
           display: { xs: "none", lg: "flex" },
-          flex: 1.1,
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: "#fff",
-          borderRadius: "0 24px 24px 0",
+          flex: 1,
+          height: "calc(100% - 60px)",
+          mt: "30px",
+          mb: "30px",
+          position: "relative",
+          borderRadius: "24px",
           overflow: "hidden",
         }}
       >
         <Image
           src="/login_bg.svg"
           alt="Doctor"
-          layout="intrinsic"
-          width={700}
-          height={800}
+          fill
           style={{
             objectFit: "cover",
-            width: "100%",
-            height: "100%",
-            borderRadius: "0 24px 24px 0",
+            borderRadius: "24px",
           }}
           priority
         />
